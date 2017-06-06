@@ -9,22 +9,26 @@ namespace Locator.Server.Controllers
     {
         public DataController()
         {
-            Get["/location"] = x =>
+            Get["/api/state"] = x =>
             {
                 return "";
             };
 
-            Post["/location"] = x =>
+            Post["/api/state"] = x =>
             {
-                var body = this.Request.Body;
-                int length = (int)body.Length;
-                byte[] data = new byte[length];
-                body.Read(data, 0, length);
-                var text = System.Text.Encoding.Default.GetString(data);
-                Console.WriteLine(text);
                 try
                 {
-                    DataDB.addData(JsonConvert.DeserializeObject<Data>(text));
+                    var request = GetObject<Packet>();
+                    //find userBy token
+                    var user = UserDB.GetUser(request.Token);
+                    //check if time no end
+                    //decrypt 
+                    var textData = Decrypt(request.Data, user.Key);
+                    //
+                    var state = JsonConvert.DeserializeObject<State>(textData);
+                    DataDB.AddData(state);
+
+                    Console.WriteLine(request.Data + " " + request.Token);                   
                 }
                 catch (Exception)
                 {
@@ -34,6 +38,36 @@ namespace Locator.Server.Controllers
                 }
                 return "OK";
             };
+        }
+
+        public T GetObject<T>()
+        {
+            var body = this.Request.Body;
+            int length = (int)body.Length;
+            byte[] data = new byte[length];
+            body.Read(data, 0, length);
+
+            return JsonConvert.DeserializeObject<T>(System.Text.Encoding.Default.GetString(data));
+        }
+
+        private string Encrypt(string value, string key)
+        {
+            //TEST
+            Console.WriteLine("Encrypted the {0} by key {1} ", value, key);
+            return value;
+        }
+
+        private string Decrypt(string value, string key)
+        {
+            //TEST
+            Console.WriteLine("Decrypted the {0} by key {1} ", value, key);
+            return value;
+        }
+
+        private class Packet
+        {
+            public string Token { get; set; }
+            public string Data { get; set; }
         }
     }
 }

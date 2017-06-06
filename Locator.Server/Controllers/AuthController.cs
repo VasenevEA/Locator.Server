@@ -3,6 +3,7 @@ using Nancy;
 using System;
 using Newtonsoft.Json;
 using Locator.Server.DataBase;
+using System.Linq;
 
 namespace Locator.Server.Controllers
 {
@@ -10,56 +11,65 @@ namespace Locator.Server.Controllers
     {
         public AuthController()
         {
-            Get["/check"] = x =>
+            Get["/ping"] = x =>
             {
-                Response response = new Response();
-                response.StatusCode = HttpStatusCode.OK;
-                return response;
+                return new Response().StatusCode = HttpStatusCode.OK;
             };
 
-            Post["/signin"] = x =>
+            //Client send:      Email and Pass
+            //Server response:  token and key, if Auth is ok
+            Post["/api/login"] = x =>
             {
-                var auth = getObject<Auth>();
-                if (UserDB.existUser(auth.Email))
+                var auth = GetObject<UserLoginModel>();
+                if (UserDB.Exist(auth.Email))
                 {
-                    return JsonConvert.SerializeObject(UserDB.getUser(auth.Email,auth.Password));
-                }
-                else
-                {
-                    Response response = new Response();
-                    response.StatusCode = HttpStatusCode.NotFound;
-                    return response;
-                }
-            };
-
-            Post["/signup"] = x =>
-            {
-                Response response = new Response();
-
-                var auth = getObject<Auth>();
-                //Check auth
-                if (UserDB.existUser(auth.Email))
-                {
-                    response.StatusCode = HttpStatusCode.Conflict;
-                    return response;
-                }
-                else
-                {
-                    //Create new user
-                    UserDB.addUser(new User
+                    var user = UserDB.GetUser(auth.Email, auth.Password);
+                    if (user.EndDT > DateTime.Now)
                     {
-                        Email = auth.Email,
-                        Name = auth.Name,
-                        Password = auth.Password,
-                        ID = UserDB.getCount() + 1 //ID auto generate ;)
-                    });
+                        user.Token = GenerateToken();
+                        user.Key = GenerateKey();
+                        user.EndDT = DateTime.Now.AddDays(1);
+                    }
+                    return new { ID = user.ID, Token = user.Token, Key = user.Key };
+                }
+                else
+                {
+                    return new Response().StatusCode = HttpStatusCode.NotFound;
+                }
+            };
 
-                    return JsonConvert.SerializeObject(UserDB.getUser(auth.Email,auth.Password));
+            //Client send:       Email, pass, FirstName, LastName, Pass
+            //Server respons     ID, token, key
+            Post["/api/reg"] = x =>
+            {
+                var reg = GetObject<UserRegModel>();
+
+                if (!UserDB.Exist(reg.Email))
+                {
+                    //generate token and key for next auth
+                    var user = new User
+                    {
+                        FirstName = reg.FirstName,
+                        LastName = reg.LastName,
+
+                        ID = UserDB.Count() + 1,
+                        Password = reg.Password,
+                        Token = GenerateToken(),
+                        Key = GenerateKey(),
+                        EndDT = DateTime.Now.AddDays(1)
+                    };
+                    UserDB.AddUser(user);
+                    //Send response
+                    return JsonConvert.SerializeObject(new { ID = user.ID, Token = user.Token, Key = user.Key });
+                }
+                else
+                {
+                    return new Response().StatusCode = HttpStatusCode.Conflict;
                 }
             };
         }
 
-        public T getObject<T>()
+        public T GetObject<T>()
         {
             var body = this.Request.Body;
             int length = (int)body.Length;
@@ -67,6 +77,37 @@ namespace Locator.Server.Controllers
             body.Read(data, 0, length);
 
             return JsonConvert.DeserializeObject<T>(System.Text.Encoding.Default.GetString(data));
+        }
+
+        private class UserLoginModel
+        {
+            public string Email { get; set; }
+            public string Password { get; set; }
+
+        }
+
+        private class UserRegModel
+        {
+            public string Email { get; set; }
+            public string Password { get; set; }
+            public string FirstName { get; set; }
+            public string LastName { get; set; }
+        }
+
+        private string GenerateKey()
+        {
+            string key = Convert.ToBase64String(Guid.NewGuid().ToByteArray());
+            key = key.Replace("=", "").Replace("+", "");
+            return key;
+        }
+
+        private string GenerateToken()
+        {
+            byte[] time = BitConverter.GetBytes(DateTime.UtcNow.ToBinary());
+            byte[] key = Guid.NewGuid().ToByteArray();
+            string token = Convert.ToBase64String(time.Concat(key).ToArray());
+
+            return token;
         }
     }
 }

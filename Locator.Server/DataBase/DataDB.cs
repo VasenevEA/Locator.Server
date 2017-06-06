@@ -10,16 +10,26 @@ namespace Locator.Server.DataBase
 {
     public static class DataDB
     {
-        private static string dataDBfilename = "data.db";
-
-     
-        public static void addData(Data data)
+        //For every user - single DB by ID
+        public static void AddData(State state)
         {
-            using (var db = new LiteDatabase(dataDBfilename))
+            var fileName = state.UserID + ".db";
+            using (var db = new LiteDatabase(fileName))
             {
-                var datas = db.GetCollection<Data>("data");
-                datas.Insert(data);
+                var datas = db.GetCollection<State>("data");
+                datas.Insert(state);
                 Console.WriteLine(datas.Count());
+            }
+        }
+
+        public static State GetLastData(string UserID)
+        {
+            var fileName = UserID + ".db";
+            using (var db = new LiteDatabase(fileName))
+            {
+                var datas = db.GetCollection<State>("data");
+                var lastState = datas.Find(Query.All(Query.Descending), limit: 1).ToArray()[0];
+                return lastState;
             }
         }
     }
