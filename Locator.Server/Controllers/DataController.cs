@@ -1,5 +1,6 @@
 ﻿using Locator.API;
 using Locator.Server.DataBase;
+using Nancy;
 using Newtonsoft.Json;
 using System;
 
@@ -11,6 +12,7 @@ namespace Locator.Server.Controllers
         {
             Get["/api/state"] = x =>
             {
+                //Return state all group
                 return "";
             };
 
@@ -27,16 +29,23 @@ namespace Locator.Server.Controllers
                     //
                     var state = JsonConvert.DeserializeObject<State>(textData);
                     DataDB.AddData(state);
+                    Console.WriteLine(user.FirstName + " " + state.DateTime + " " + state.Longitude + " " + state.Latitude);
 
-                    Console.WriteLine(request.Data + " " + request.Token);                   
+                    //TODO: Return state all group
+                    //Find all users in group.
+                    //Find State for every User
+                    //Response
+                    return "OK";
                 }
-                catch (Exception)
+                catch (Exception ex)
                 {
                     Console.ForegroundColor = ConsoleColor.Red;
-                    Console.WriteLine("ERROR Parse");
+                    Console.WriteLine("ERROR " + ex.Message);
                     Console.ForegroundColor = ConsoleColor.White;
+
+                    return new Response().StatusCode = HttpStatusCode.NonAuthoritativeInformation;
                 }
-                return "OK";
+                
             };
         }
 

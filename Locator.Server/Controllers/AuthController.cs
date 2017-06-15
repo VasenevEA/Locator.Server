@@ -13,7 +13,7 @@ namespace Locator.Server.Controllers
         {
             Get["/ping"] = x =>
             {
-                return new Response().StatusCode = HttpStatusCode.OK;
+                return "Pong";
             };
 
             //Client send:      Email and Pass
@@ -30,7 +30,7 @@ namespace Locator.Server.Controllers
                         user.Key = GenerateKey();
                         user.EndDT = DateTime.Now.AddDays(1);
                     }
-                    return new { ID = user.ID, Token = user.Token, Key = user.Key };
+                    return new {Token = user.Token, Key = user.Key };
                 }
                 else
                 {
@@ -53,6 +53,7 @@ namespace Locator.Server.Controllers
                         LastName = reg.LastName,
 
                         ID = UserDB.Count() + 1,
+                        Email = reg.Email,
                         Password = reg.Password,
                         Token = GenerateToken(),
                         Key = GenerateKey(),
@@ -60,7 +61,7 @@ namespace Locator.Server.Controllers
                     };
                     UserDB.AddUser(user);
                     //Send response
-                    return JsonConvert.SerializeObject(new { ID = user.ID, Token = user.Token, Key = user.Key });
+                    return JsonConvert.SerializeObject(new {Token = user.Token, Key = user.Key });
                 }
                 else
                 {
@@ -97,7 +98,8 @@ namespace Locator.Server.Controllers
         private string GenerateKey()
         {
             string key = Convert.ToBase64String(Guid.NewGuid().ToByteArray());
-            key = key.Replace("=", "").Replace("+", "");
+            key = key.Replace("=", "");
+            key = key.Replace("+", "");
             return key;
         }
 
@@ -106,7 +108,8 @@ namespace Locator.Server.Controllers
             byte[] time = BitConverter.GetBytes(DateTime.UtcNow.ToBinary());
             byte[] key = Guid.NewGuid().ToByteArray();
             string token = Convert.ToBase64String(time.Concat(key).ToArray());
-
+            token = token.Replace("=", "");
+            token = token.Replace("+", "");
             return token;
         }
     }
