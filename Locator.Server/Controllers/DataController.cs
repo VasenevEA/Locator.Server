@@ -3,6 +3,8 @@ using Locator.Server.DataBase;
 using Nancy;
 using Newtonsoft.Json;
 using System;
+using System.Collections.Generic;
+using System.Threading.Tasks;
 
 namespace Locator.Server.Controllers
 {
@@ -10,16 +12,45 @@ namespace Locator.Server.Controllers
     {
         public DataController()
         {
-            Get["/api/state"] = x =>
+            Post["/api/group/all", true] = async (x, ct) =>
             {
-                //Return state all group
+                await Task.Delay(100);
+                var request = GetObject<Packet>();
+                //find userBy token
+                var key = UserDB.GetUser(request.Token).Key;
+
+                //for test return last state of all users
+                var groupState = new List<State>();
+                var users = UserDB.GetAll();
+                foreach (var user in users)
+                {
+                    var state = DataDB.GetLastData(user.ID);
+                    if (state != null)
+                    {
+                        groupState.Add(state);
+                    }
+                }
+
+                var packet = new Packet
+                {
+                    Token = null,
+                    Data = Encrypt(JsonConvert.SerializeObject(groupState), key)
+                };
+                return JsonConvert.SerializeObject(packet);
+            };
+
+            Get["/api/group/join"] = x =>
+            {
+
                 return "";
             };
 
-            Post["/api/state"] = x =>
+            Post["/api/state",true] = async (x, ct) =>
             {
+                await Task.Delay(100);
                 try
                 {
+                   
                     var request = GetObject<Packet>();
                     //find userBy token
                     var user = UserDB.GetUser(request.Token);
@@ -29,13 +60,9 @@ namespace Locator.Server.Controllers
                     //
                     var state = JsonConvert.DeserializeObject<State>(textData);
                     DataDB.AddData(state);
-                    Console.WriteLine(user.FirstName + " " + state.DateTime + " " + state.Longitude + " " + state.Latitude);
+                    Console.WriteLine(user.ID + " " + user.FirstName + " " + state.DateTime + " " + state.Longitude + " " + state.Latitude);
 
-                    //TODO: Return state all group
-                    //Find all users in group.
-                    //Find State for every User
-                    //Response
-                    return "OK";
+                    return "ok";
                 }
                 catch (Exception ex)
                 {
@@ -45,7 +72,7 @@ namespace Locator.Server.Controllers
 
                     return new Response().StatusCode = HttpStatusCode.NonAuthoritativeInformation;
                 }
-                
+
             };
         }
 
@@ -62,14 +89,14 @@ namespace Locator.Server.Controllers
         private string Encrypt(string value, string key)
         {
             //TEST
-            Console.WriteLine("Encrypted the {0} by key {1} ", value, key);
+           // Console.WriteLine("Encrypted the {0} by key {1} ", value, key);
             return value;
         }
 
         private string Decrypt(string value, string key)
         {
             //TEST
-            Console.WriteLine("Decrypted the {0} by key {1} ", value, key);
+           // Console.WriteLine("Decrypted the {0} by key {1} ", value, key);
             return value;
         }
 

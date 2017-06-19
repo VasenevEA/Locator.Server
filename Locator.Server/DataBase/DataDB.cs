@@ -18,17 +18,26 @@ namespace Locator.Server.DataBase
             {
                 var datas = db.GetCollection<State>("data");
                 datas.Insert(state);
-                Console.WriteLine(datas.Count());
             }
         }
 
-        public static State GetLastData(string UserID)
+        public static int Count(int UserID)
         {
             var fileName = UserID + ".db";
             using (var db = new LiteDatabase(fileName))
             {
                 var datas = db.GetCollection<State>("data");
-                var lastState = datas.Find(Query.All(Query.Descending), limit: 1).ToArray()[0];
+                return datas.Count();
+            }
+        }
+
+        public static State GetLastData(int UserID)
+        {
+            var fileName = UserID + ".db";
+            using (var db = new LiteDatabase(fileName))
+            {
+                var datas = db.GetCollection<State>("data");
+                var lastState = datas.Find(Query.All(Query.Descending), limit: 1).ToArray().FirstOrDefault();
                 return lastState;
             }
         }

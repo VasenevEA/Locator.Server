@@ -46,22 +46,36 @@ namespace Locator.Server.Controllers
 
                 if (!UserDB.Exist(reg.Email))
                 {
+                  
                     //generate token and key for next auth
                     var user = new User
                     {
                         FirstName = reg.FirstName,
                         LastName = reg.LastName,
-
+                        
                         ID = UserDB.Count() + 1,
+                      
+                        GroupID = GroupDB.Count() + 1,
                         Email = reg.Email,
                         Password = reg.Password,
                         Token = GenerateToken(),
                         Key = GenerateKey(),
                         EndDT = DateTime.Now.AddDays(1)
                     };
+
                     UserDB.AddUser(user);
+                    GroupDB.Add(new Models.Group
+                    {
+                        ID = user.GroupID,
+                        UsersID = new int[]
+                        {
+                            user.ID
+                        }
+                    });
+
+                   
                     //Send response
-                    return JsonConvert.SerializeObject(new {Token = user.Token, Key = user.Key });
+                    return JsonConvert.SerializeObject(new {Token = user.Token, Key = user.Key, ID = user.ID});
                 }
                 else
                 {
